@@ -19,19 +19,19 @@ ssh <username>@fir.alliancecan.ca
 
 ### 2. Clone the repo into your `HOME` space
 
-If your Bitbucket SSH key is already configured on FIR, the SSH clone is the simplest option:
+Because this repository is public on GitHub, HTTPS clone is the simplest option on FIR:
 
 ```bash
 cd "$HOME"
-git clone ssh://git@bitbucket.oceannetworks.ca:7999/~sbialek/daqathon.git daqathon
+git clone https://github.com/Spiffical/daqathon.git daqathon
 cd daqathon
 ```
 
-If you prefer HTTPS, use:
+If you prefer GitHub SSH and already have your GitHub SSH key configured on FIR, use:
 
 ```bash
 cd "$HOME"
-git clone https://bitbucket.oceannetworks.ca/scm/~sbialek/daqathon.git daqathon
+git clone git@github.com:Spiffical/daqathon.git daqathon
 cd daqathon
 ```
 
