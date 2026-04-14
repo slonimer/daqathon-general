@@ -35,7 +35,25 @@ git clone git@github.com:Spiffical/daqathon.git daqathon
 cd daqathon
 ```
 
-Launch Jupyter from inside the cloned repo so the helper imports work correctly.
+### 3. Launch JupyterHub on FIR
+
+Open:
+
+```text
+https://jupyterhub.fir.alliancecan.ca/
+```
+
+Start your JupyterHub environment there.
+
+### 4. Open the notebooks from your cloned repo
+
+In the JupyterHub file browser:
+
+- navigate to your cloned `~/daqathon` repo
+- open one of the notebooks in `notebooks/`
+- select the shared `Daqathon ML` kernel when prompted
+
+Launch the notebooks from inside the cloned repo so the helper imports work correctly.
 
 ## What Lives Where
 
@@ -114,12 +132,13 @@ That runtime output area is used for:
 
 ## Shared Cache Behavior
 
-The notebooks prefer the shared prepared cache on FIR, but they may stage a writable working copy into the runtime output area when appropriate.
+On FIR, the notebooks treat the shared project space as the long-lived source of truth, but they stage fast local working copies when possible.
 
 That means:
 
-- shared cache stays as the long-lived source
-- your notebook run gets a writable per-run working area
+- if `$SLURM_TMPDIR` is available, the notebook copies the shared raw CSV directory and the shared prepared cache into node-local job storage before reading them
+- shared raw data and shared cache stay as the long-lived sources
+- your notebook run gets a fast writable per-run working area
 - generated files do not pollute shared project storage
 
 If you choose to run the raw-to-parquet preparation step from inside a notebook, the generated cache will be written into your runtime output directory, not into the shared cache.
