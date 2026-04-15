@@ -46,6 +46,9 @@ MEASUREMENT_COLUMNS = [
     "Temperature (C)",
 ]
 
+DEFAULT_CACHE_STEM = "scalar_session1"
+LEGACY_CACHE_STEMS = (DEFAULT_CACHE_STEM, "ctd_session1")
+
 QC_FLAG_MEANINGS = {
     0: "no QC",
     1: "good",
@@ -70,6 +73,48 @@ DEFAULT_FLAG_PALETTE = {
     9: "#7f7f7f",
     34: "#e76f51",
 }
+
+
+@dataclass(frozen=True)
+class CacheBundlePaths:
+    root: Path
+    stem: str
+    row_level_dir: Path
+    window_cache_path: Path
+    metadata_path: Path
+
+
+def _normalize_cache_stem(cache_stem: str) -> str:
+    normalized = cache_stem.strip()
+    if not normalized:
+        raise ValueError("cache stem must not be empty")
+    if any(separator in normalized for separator in ("/", "\\")):
+        raise ValueError("cache stem must be a simple name, not a path")
+    return normalized
+
+
+def build_cache_bundle_paths(cache_dir: str | Path, cache_stem: str = DEFAULT_CACHE_STEM) -> CacheBundlePaths:
+    cache_root = Path(cache_dir).expanduser().resolve()
+    stem = _normalize_cache_stem(cache_stem)
+    return CacheBundlePaths(
+        root=cache_root,
+        stem=stem,
+        row_level_dir=cache_root / f"{stem}_row_level",
+        window_cache_path=cache_root / f"{stem}_windowed_features.parquet",
+        metadata_path=cache_root / f"{stem}_metadata.json",
+    )
+
+
+def resolve_cache_bundle_paths(
+    cache_dir: str | Path,
+    cache_stem: str | None = None,
+) -> CacheBundlePaths:
+    stems_to_try = [cache_stem] if cache_stem is not None else list(LEGACY_CACHE_STEMS)
+    for stem in stems_to_try:
+        candidate = build_cache_bundle_paths(cache_dir, stem)
+        if candidate.metadata_path.exists():
+            return candidate
+    return build_cache_bundle_paths(cache_dir, stems_to_try[0])
 
 
 def resolve_runtime_output_root(
@@ -243,6 +288,7 @@ def select_part_paths(part_paths: list[Path], limit: int | None, mode: str = "sp
 def load_cache_bundle(
     cache_dir: str | Path,
     *,
+    cache_stem: str | None = None,
     row_file_limit: int | None = None,
     part_selection_mode: str = "spread",
     rows_per_file: int = 45000,
@@ -253,10 +299,10 @@ def load_cache_bundle(
     window_columns: list[str] | None = None,
 ) -> dict[str, object]:
     """Load metadata plus row- and window-level samples from the prepared cache."""
-    cache_path = Path(cache_dir)
-    metadata_path = cache_path / "ctd_session1_metadata.json"
-    row_cache_dir = cache_path / "ctd_session1_row_level"
-    window_cache_path = cache_path / "ctd_session1_windowed_features.parquet"
+    bundle_paths = resolve_cache_bundle_paths(cache_dir, cache_stem=cache_stem)
+    metadata_path = bundle_paths.metadata_path
+    row_cache_dir = bundle_paths.row_level_dir
+    window_cache_path = bundle_paths.window_cache_path
 
     metadata = json.loads(metadata_path.read_text())
     part_paths = sorted(row_cache_dir.glob("*.parquet"))
